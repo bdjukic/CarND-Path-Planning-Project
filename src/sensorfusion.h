@@ -1,4 +1,7 @@
 
+#ifndef SENSORFUSION_H
+#define SENSORFUSION_H
+
 #include <vector>
 
 #include "vehicle.h"
@@ -6,8 +9,7 @@
 using namespace std;
 
 class SensorFusion {
-
-public:
+ public:
   SensorFusion();
   virtual ~SensorFusion();
 
@@ -15,3 +17,5 @@ public:
 
   void update_traffic(vector<vector<double>> sensor_fusion);
 };
+
+#endif

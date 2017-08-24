@@ -1,4 +1,4 @@
-#include "sensorfusion.h"
+#include "predictionplanner.h"
 
 class BehaviorPlanner {
  private:
@@ -10,15 +10,13 @@ class BehaviorPlanner {
   Vehicle::Lane target_lane;
 
   Vehicle *vehicle;
-  SensorFusion *sensor_fusion;
+  PredictionPlanner *prediction_planner;
 
   double get_speed_cost();
   double get_distance_cost(double distance_from_neighbouring_vehicle);
 
-  vector<double> get_neighbouring_vehicle_distance(Vehicle::Lane lane);
-
  public:
-  BehaviorPlanner(Vehicle *vehicle, SensorFusion *sensor_fusion);
+  BehaviorPlanner(Vehicle *vehicle, PredictionPlanner *prediction_planner);
   virtual ~BehaviorPlanner();
 
   void update_behavior(int previous_path_size);

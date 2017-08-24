@@ -10,6 +10,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "behaviorplanner.h"
 #include "json.hpp"
+#include "predictionplanner.h"
 #include "trajectoryplanner.h"
 
 using namespace std;
@@ -159,7 +160,9 @@ int main() {
 
   SensorFusion sensor_fusion = SensorFusion();
   TrajectoryPlanner trajectory_planner = TrajectoryPlanner();
-  BehaviorPlanner behavior_planner = BehaviorPlanner(&vehicle, &sensor_fusion);
+  PredictionPlanner prediction_planner = PredictionPlanner(&sensor_fusion);
+  BehaviorPlanner behavior_planner =
+      BehaviorPlanner(&vehicle, &prediction_planner);
 
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
                &map_waypoints_dx, &map_waypoints_dy, &behavior_planner,

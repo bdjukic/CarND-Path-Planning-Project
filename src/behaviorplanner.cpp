@@ -1,13 +1,12 @@
 #include "behaviorplanner.h"
 #include <algorithm>
-#include <climits>
 #include <iostream>
 
 using namespace std;
 
 BehaviorPlanner::BehaviorPlanner(Vehicle *vehicle,
-                                 SensorFusion *sensor_fusion) {
-  this->sensor_fusion = sensor_fusion;
+                                 PredictionPlanner *prediction_planner) {
+  this->prediction_planner = prediction_planner;
   this->vehicle = vehicle;
 }
 
@@ -35,41 +34,12 @@ double BehaviorPlanner::get_distance_cost(
   return 1 / exp(distance_from_neighbouring_vehicle / 10.0);
 }
 
-vector<double> BehaviorPlanner::get_neighbouring_vehicle_distance(
-    Vehicle::Lane lane) {
-  double closest_behind = 0;
-  double closest_infront = INT_MAX;
-
-  for (int i = 0; i < this->sensor_fusion->vehicles.size(); i++) {
-    if (this->sensor_fusion->vehicles[i].get_lane() == lane) {
-      if (sensor_fusion->vehicles[i].s >= this->vehicle->s &&
-          sensor_fusion->vehicles[i].s <= closest_infront) {
-        closest_infront = sensor_fusion->vehicles[i].s - this->vehicle->s;
-      } else if (sensor_fusion->vehicles[i].s < this->vehicle->s &&
-                 sensor_fusion->vehicles[i].s > closest_behind) {
-        closest_behind = this->vehicle->s - sensor_fusion->vehicles[i].s;
-      }
-    }
-  }
-
-  return {closest_behind, closest_infront};
-}
-
 void BehaviorPlanner::update_behavior(int previous_path_size) {
-  bool should_slow_down = false;
+  Vehicle::Lane current_lane = this->vehicle->get_lane();
+  double current_s = this->vehicle->s;
 
-  for (int i = 0; i < this->sensor_fusion->vehicles.size(); i++) {
-    if (this->vehicle->get_lane() ==
-        this->sensor_fusion->vehicles[i].get_lane()) {
-      double future_s =
-          (previous_path_size * 0.02 * this->sensor_fusion->vehicles[i].speed) +
-          this->sensor_fusion->vehicles[i].s;
-
-      if (future_s > this->vehicle->s && (future_s - this->vehicle->s < 20)) {
-        should_slow_down = true;
-      }
-    }
-  }
+  bool should_slow_down = this->prediction_planner->should_slow_down(
+      current_lane, current_s, previous_path_size);
 
   if (should_slow_down) {
     // Decrease speed
@@ -82,10 +52,12 @@ void BehaviorPlanner::update_behavior(int previous_path_size) {
       // Based on cost functions, figure out target lane
       if (this->vehicle->get_lane() == Vehicle::Lane::Center) {
         vector<double> left_neighbouring_vehicles =
-            get_neighbouring_vehicle_distance(Vehicle::Lane::Left);
+            this->prediction_planner->get_neighbouring_vehicle_distance(
+                Vehicle::Lane::Left, current_s);
 
         vector<double> right_neighbouring_vehicles =
-            get_neighbouring_vehicle_distance(Vehicle::Lane::Right);
+            this->prediction_planner->get_neighbouring_vehicle_distance(
+                Vehicle::Lane::Right, current_s);
 
         double left_lane_cost_behind =
             get_distance_cost(left_neighbouring_vehicles[0]);
@@ -118,7 +90,8 @@ void BehaviorPlanner::update_behavior(int previous_path_size) {
         }
       } else if (this->vehicle->get_lane() == Vehicle::Lane::Left) {
         vector<double> center_neighbouring_vehicles =
-            get_neighbouring_vehicle_distance(Vehicle::Lane::Center);
+            this->prediction_planner->get_neighbouring_vehicle_distance(
+                Vehicle::Lane::Center, current_s);
 
         double center_lane_cost_behind =
             get_distance_cost(center_neighbouring_vehicles[0]);
@@ -134,7 +107,8 @@ void BehaviorPlanner::update_behavior(int previous_path_size) {
         }
       } else if (this->vehicle->get_lane() == Vehicle::Lane::Right) {
         vector<double> center_neighbouring_vehicles =
-            get_neighbouring_vehicle_distance(Vehicle::Lane::Center);
+            this->prediction_planner->get_neighbouring_vehicle_distance(
+                Vehicle::Lane::Center, current_s);
 
         double center_lane_cost_behind =
             get_distance_cost(center_neighbouring_vehicles[0]);
